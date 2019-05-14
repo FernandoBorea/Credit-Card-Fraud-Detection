@@ -46,7 +46,10 @@ To render the Rmd version of this report you will need to have a LaTeX installat
 # Data Adquisition
 
 This section is going be mainly intended to download or read the data set (depending if you have the repository cloned into your local machine) that we will be using throughout the project. 
-First, we will start by loading the required libraries, and then proceed to read our data either from our working directory if we cloned the repository, or from Git LFS if we have not. To do that, we will use the code below. Note that because of formatting purposes, we will not show the output messages from the code below on the report. Running the code below might take some minutes depending on your internet connection.
+
+First, we will start by loading the required libraries for our project, and then proceed to read our data either from our working directory if we cloned the repository, or from Git LFS if we have not. Note that because of formatting purposes, we will not show the output messages from the code below on the report. 
+
+Executing this code section might take some minutes depending on your internet connection.
 
 ```{r data adquisition libraries, message=FALSE, warning=FALSE, error=FALSE}
 
@@ -54,6 +57,15 @@ if(!require(tidyverse)) install.packages("tidyverse",
                                          repos = "http://cran.us.r-project.org")
 
 if(!require(RCurl)) install.packages("RCurl", 
+                                     repos = "http://cran.us.r-project.org")
+
+if(!require(knitr)) install.packages("knitr", 
+                                     repos = "http://cran.us.r-project.org")
+
+if(!require(caret)) install.packages("caret", 
+                                     repos = "http://cran.us.r-project.org")
+
+if(!require(randomForest)) install.packages("randomForest", 
                                      repos = "http://cran.us.r-project.org")
 
 if(file.exists("creditcard.csv"))
@@ -76,6 +88,37 @@ if(file.exists("creditcard.csv"))
 
 ```
 
+\pagebreak
+
+## Preliminary Data Exploration
+
+Once the Data Adquisition process is finished, we will start performing some preliminary data exploration to make sure the data was downloaded and/or read correctly and to familiarize ourselves with the data set. 
+
+When calling the function `str()` to look for the data structure, it will result in quite a large and somewhat messy output within our report. We already know from the [Kaggle Site](https://www.kaggle.com/mlg-ulb/creditcardfraud) where we got our data from, that we have several columns in our data set, therefore we are not going to include the output of the code below.
+
+```{r preliminary exploration 1, results='hide'}
+
+str(cc_dataset)
+
+```
+
+As we did not show the output of the code above, we will use another approach to still show some information about the data set within this section, more specifically, we will just check the amount of rows and columns as well as the class of each column:
+
+```{r preliminary exploration 2}
+
+data.frame(Columns = ncol(cc_dataset), Rows = nrow(cc_dataset)) %>% 
+  knitr::kable()
+
+col_classes <- data.frame(Column = colnames(cc_dataset)[1:16],
+                 Class = unname(apply(cc_dataset, 2, class))[1:16],
+                 Column = c(colnames(cc_dataset)[17:ncol(cc_dataset)],""),
+                 Class = c(unname(apply(cc_dataset, 2, class))[17:ncol(cc_dataset)],""))
+
+colnames(col_classes) <- c("Column", "Class", "Column","Class")
+ 
+col_classes %>% knitr::kable()
+
+```
 
 \pagebreak
 
