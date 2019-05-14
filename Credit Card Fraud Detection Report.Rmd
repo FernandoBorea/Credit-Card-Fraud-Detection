@@ -1,30 +1,94 @@
 ---
 title: "Credit Card Fraud Detection"
 author: "Fernando José Velasco Borea"
-date: "12 de mayo de 2019"
-output: pdf_document
+date: "May 12th 2019"
+output: 
+  pdf_document:
+      toc: true
+      number_sections: true
 ---
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
-## R Markdown
+\pagebreak
 
-This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
+# Introduction and Overview
 
-When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
+An article conducted by Loss Prevention Magazine in 2018 showed that by 2020 the total monetary losses due to credit card fraud in the U.S. alone could excede the $10,000,000,000 mark (you can find the article [here](https://losspreventionmedia.com/credit-card-fraud-statistics-and-insights/)). With a constant growth on cardholders across the years, the concern about this type of fraud has also increased. On 2017 we saw an increment of 1.3 million credit card fraud victims, implying an increase of 8.4% when compared to the 2016 period (as reported by Javelin Strategy & Research). Taking this into account, I decided to conduct a supervised machine learning project with the goal of predicting potential fraudulent credit card transactions.
 
-```{r cars}
-summary(cars)
+For this project, we will be using the data set provided by Machine Learning Group - ULB through Kaggle (you can find it through this [link](https://www.kaggle.com/mlg-ulb/creditcardfraud)). The data set contains information about the time (relative to the frequency of the transactions when compared to the first one in the data set), amount, type of transaction (either fraudulent or non-fraudulent, represented by a 1 or a 0 respectively) and 28 numerical features resulting from a PCA Dimensionality Reduction to protect the users identity and sensitive information.
+
+The project will be divided into 4 major sections, as follows:
+
+1. Data Adquisition
+2. Data Exploration and Wrangling
+3. Modeling
+4. Testing
+
+Once we complete the sections mentioned above, we will create a _Conclusions_ section with the insights we gathered throughout the project.
+
+## Side Notes
+
+Although the data set used for this project is downloaded within the code, to improve the run time, it is recommended to clone the [GitHub repository](https://github.com/FernandoBorea/Credit-Card-Fraud-Detection) as it contains the `csv` file with the data set we used.
+
+To enhance code readability when viewing the Rmd version of this report and/or when viewing the Credit Card Fraud Detection Script file to see only the coding part of the project, you can _fold_ the all the sections from RStudio to then just _unfold_ the section you are currently viewing, therefore, easing the interpretation of the code.
+
+You can quickly do this from RStudio going to _Edit > Folding > Collapse All_ or simply with the shortcut _ALT + O_ on windows. If you want to exapnd all the sections again, you can use the shortcut _ALT + SHIFT + O_ on windows or from _Edit > Folding > Expand All_.
+
+The code contained in this report can be found on the Credit Card Fraud Detection Script file. It follows the same structure and order as the report, therefore, making it easier to reproduce the results while maintaining code readability.
+
+To render the Rmd version of this report you will need to have a LaTeX installation. If you don't have it, you can find more details on how to install it [here](https://bookdown.org/yihui/rmarkdown/installation.html#installation).
+
+\pagebreak
+
+# Data Adquisition
+
+This section is going be mainly intended to download or read the data set (depending if you have the repository cloned into your local machine) that we will be using throughout the project. 
+First, we will start by loading the required libraries, and then proceed to read our data either from our working directory if we cloned the repository, or from Git LFS if we have not. To do that, we will use the code below. Note that because of formatting purposes, we will not show the output messages from the code below on the report. Running the code below might take some minutes depending on your internet connection.
+
+```{r data adquisition libraries, message=FALSE, warning=FALSE, error=FALSE}
+
+if(!require(tidyverse)) install.packages("tidyverse", 
+                                         repos = "http://cran.us.r-project.org")
+
+if(!require(RCurl)) install.packages("RCurl", 
+                                     repos = "http://cran.us.r-project.org")
+
+if(file.exists("creditcard.csv"))
+{
+  
+  cc_dataset <- read_csv("creditcard.csv")
+  
+} else {
+  
+  URL_p1 <- "https://media.githubusercontent.com"
+  URL_p2 <- "/media/FernandoBorea/Credit-Card-Fraud-Detection/master/creditcard.csv"
+  datURL <- getURL(paste(URL_p1, URL_p2, sep = ""))
+  
+#We divided the entire URL in 2 string vectors and 
+#then used paste to maintain the report formatting
+  
+  cc_dataset <- read_csv(datURL)
+  
+}
+
 ```
 
-## Including Plots
 
-You can also embed plots, for example:
+\pagebreak
 
-```{r pressure, echo=FALSE}
-plot(pressure)
-```
+# Data Exploration and Wrangling
 
-Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
+\pagebreak
+
+# Modeling
+
+\pagebreak
+
+# Testing
+
+\pagebreak
+
+# Conclusions
