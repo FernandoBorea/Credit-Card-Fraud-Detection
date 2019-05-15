@@ -115,7 +115,7 @@ col_classes <- data.frame(Column = colnames(cc_dataset)[1:16],
                  Class = c(unname(apply(cc_dataset, 2, class))[17:ncol(cc_dataset)],""))
 
 colnames(col_classes) <- c("Column", "Class", "Column","Class")
- 
+
 col_classes %>% knitr::kable()
 
 ```
@@ -124,9 +124,130 @@ col_classes %>% knitr::kable()
 
 # Data Exploration and Wrangling
 
+Now, as we finished the Data Adquisition phase, we will dive into our data set to gather useful insights and perform some data wrangling if necessary for the Modeling phase. As we saw from our Preliminary Data Exploration section, we are dealing with a slightly large amount of variables.
+
+If we evaluate the chart containing the classes for each column on the previous section, we can notice that all of them contain numeric values, but the last one (the Class column) contains a binary value, either 1 or 0 for fraudulent or non-fraudulent transactions respectively. For this reason, we need to convert it form numeric to factor. We can do this using the following code:
+
+```{r data wrangling: class as factor}
+
+cc_dataset <- cc_dataset %>% mutate(Class = as.factor(cc_dataset$Class))
+
+class(cc_dataset$Class)
+
+```
+
+Next, we are going to explore the data with some plots. We will start by cheking out the distribution of the `Class` variable. We can do that with the follwing code:
+
+```{r fraudulent transactions distribution, out.width = '85%', fig.align='center'}
+
+cc_dataset %>%
+  count(Class) %>%
+  ggplot(aes(x = Class, y = n/100, fill = Class)) + 
+  geom_col(col = "Black") + 
+  scale_y_log10() + 
+  labs(title = "Fraudulent Transactions Distribution", 
+       x = "Class (0 = Non-Fraudulent, 1 = Fraudulent)",
+       y = "Count in Hundreds")
+
+```
+
+We can inmediately see a huge difference on the data distribution. Because of this, we will now check how many non-fraudulent transactions and how many fraudulent transactions we have in our data.
+
+```{r class count}
+
+class_dist <- cc_dataset %>%
+               group_by(Class) %>%
+               summarize(Count = n())
+class_dist %>% knitr::kable()
+
+```
+
+The previous result tells us that we are facing a data set with a massively unbalanced distribution on the `Class` column. Because of this, we are going to take a new approach in our data exploration. In order to avoid creating 30 plots to check the distribution of each variable relative to the Class column, we are going to group each variable by the class of the observation to then compute the average on each group, then, we will visualize the distribution of the ones that have the biggest difference on the averages. 
+
+```{r avg differences}
+
+#Because of formatting purposes, we will not print out this object
+
+vars_grouped_avgs <- cc_dataset %>%
+                     group_by(Class) %>%
+                     summarize_all(list(mean))
+
+#We will drop the class column as it is a factor and we cannot perform operations with it
+
+vars_diff <- vars_grouped_avgs[,-1]
+
+#Then, we will calculate the difference bewtween values and sort them
+
+diff <- abs(vars_diff[1,] - vars_diff[2,])
+diff <- sort(diff, decreasing = TRUE)
+diff
+
+```
+
+\pagebreak
+
+Now, as we can see, the biggest differences were on the `Time` and `Amount` variables, but when we look at those entries on the `vars_grouped_avgs` data frame, we notice that we might have a very similar distribution as the difference between the averages on those cases is not that large when we take into account the magnitude of the values. 
+
+```{r time and amount lookup}
+
+vars_grouped_avgs[c("Time", "Amount")]
+
+```
+
+We can check if our hyphothesis is correct by plotting those variables and compare the actual distribution when grouped by the transaction type.
+
+```{r hypthothesis check, out.width='75%', fig.align='center'}
+
+#We will transform Amount variable to log10 values and tidy up the data 
+
+time_amount_tidy <- cc_dataset[c("Time", "Amount", "Class")] %>%
+  mutate(Amount = if_else(Amount != 0,log10(Amount), Amount)) %>%
+  gather(-Class, key = "Variable", value = "Values")
+
+#To then plot it
+
+time_amount_tidy %>% 
+  ggplot(aes(x = Class, y = Values, fill = Class)) +
+  facet_wrap(~Variable, scales = "free") +
+  geom_boxplot() + 
+  labs(title = "Time and Amount Variables Distribution", 
+       x = "Class (0 = Non-Fraudulent, 1 = Fraudulent)",
+       y = "value")
+
+```
+
+As we can see, our hyphothesis was correct as we see a very similar distribution on both variables when we plot them grouped by the transaction type. This fact makes them have less relevance as predictors, so we will drop them from our vector.
+
+```{r time and amount drop}
+
+diff <- diff[-which(names(diff) %in% c("Time", "Amount"))]
+
+```
+
+Once we have updated the `diff` vector, we will make a plot comparing the value distribution of the new top 3 variables we got from our calculation, once again, dividing the data into fraudulent and non-fraudulent transactions:
+
+```{r plot avg vars, fig.align='center'}
+
+#We will tidy up the data first
+
+tidy_data <- cc_dataset[c("V3", "V14", "V17", "Class")] %>%
+  gather(-Class, key = "Variable", value = "Values")
+
+#And then plot it
+
+tidy_data %>% ggplot(aes(x = Class, y = Values, fill = Class)) + 
+  facet_wrap(~Variable, scales = 'free') +
+  geom_boxplot() + 
+  labs(title = "V3, V14 and V17 Variables Distribution", 
+       x = "Class (0 = Non-Fraudulent, 1 = Fraudulent)",
+       y = "value")
+
+```
+
 \pagebreak
 
 # Modeling
+
 
 \pagebreak
 
