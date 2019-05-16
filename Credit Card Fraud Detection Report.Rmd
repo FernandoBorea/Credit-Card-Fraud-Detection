@@ -126,7 +126,7 @@ col_classes %>% knitr::kable()
 
 Now, as we finished the Data Adquisition phase, we will dive into our data set to gather useful insights and perform some data wrangling if necessary for the Modeling phase. As we saw from our Preliminary Data Exploration section, we are dealing with a slightly large amount of variables.
 
-If we evaluate the chart containing the classes for each column on the previous section, we can notice that all of them contain numeric values, but the last one (the Class column) contains a binary value, either 1 or 0 for fraudulent or non-fraudulent transactions respectively. For this reason, we need to convert it form numeric to factor. We can do this using the following code:
+If we evaluate the chart containing the classes for each column on the previous section, we can notice that all of them contain numeric values, but the last one (the Class column) contains a binary value, either 1 or 0 for fraudulent or non-fraudulent transactions respectively. For this reason, we need to convert it from numeric to factor. We can do this using the following code:
 
 ```{r data wrangling: class as factor}
 
@@ -146,7 +146,7 @@ cc_dataset %>%
   geom_col(col = "Black") + 
   scale_y_log10() + 
   labs(title = "Fraudulent Transactions Distribution", 
-       x = "Class (0 = Non-Fraudulent, 1 = Fraudulent)",
+       x = "Transaction Type (0 = Non-Fraudulent, 1 = Fraudulent)",
        y = "Count in Hundreds")
 
 ```
@@ -162,7 +162,7 @@ class_dist %>% knitr::kable()
 
 ```
 
-The previous result tells us that we are facing a data set with a massively unbalanced distribution on the `Class` column. Because of this, we are going to take a new approach in our data exploration. In order to avoid creating 30 plots to check the distribution of each variable relative to the Class column, we are going to group each variable by the class of the observation to then compute the average on each group, then, we will visualize the distribution of the ones that have the biggest difference on the averages. 
+The previous result tells us that we are facing a data set with a massively unbalanced distribution on the `Class` column. Because of this, we are going to take a new approach in our data exploration. In order to avoid creating 30 plots to check the distribution of each variable relative to the Class column, we are going to group each variable by the type of the observation to then compute the average on each group, then, we will visualize the distribution of the ones that have the biggest difference on the averages. 
 
 ```{r avg differences}
 
@@ -211,7 +211,7 @@ time_amount_tidy %>%
   facet_wrap(~Variable, scales = "free") +
   geom_boxplot() + 
   labs(title = "Time and Amount Variables Distribution", 
-       x = "Class (0 = Non-Fraudulent, 1 = Fraudulent)",
+       x = "Transaction Type (0 = Non-Fraudulent, 1 = Fraudulent)",
        y = "value")
 
 ```
@@ -226,7 +226,7 @@ diff <- diff[-which(names(diff) %in% c("Time", "Amount"))]
 
 Once we have updated the `diff` vector, we will make a plot comparing the value distribution of the new top 3 variables we got from our calculation, once again, dividing the data into fraudulent and non-fraudulent transactions:
 
-```{r plot avg vars, fig.align='center'}
+```{r plot top avg vars, fig.align='center', out.width='85%'}
 
 #We will tidy up the data first
 
@@ -239,19 +239,124 @@ tidy_data %>% ggplot(aes(x = Class, y = Values, fill = Class)) +
   facet_wrap(~Variable, scales = 'free') +
   geom_boxplot() + 
   labs(title = "V3, V14 and V17 Variables Distribution", 
-       x = "Class (0 = Non-Fraudulent, 1 = Fraudulent)",
+       x = "Transaction Type (0 = Non-Fraudulent, 1 = Fraudulent)",
        y = "value")
 
 ```
 
+As we can tell from the previous plots we generated, the Interquartile Ranges of the data distribution when we group by transaction type are well separated from each other, meaning that we can in fact have some predictive power from those variables, validating our initial approach of calculating the variable averages difference when grouped by transaction type.
+
 \pagebreak
+
+Now, another study we can perform with our data to corroborate that our approach is correct, is to make the same plots but this time with the last 3 variables from our `diff` vector and see if we in fact get a very similar distribution, meaning that those variables have less predictive power. We can perform this with the following code:
+
+```{r plot tail avg vars, fig.align='center', out.width='75%'}
+
+#We will again tidy up the data first
+
+tidy_data <- cc_dataset[c("V25", "V23", "V22", "Class")] %>%
+  gather(-Class, key = "Variable", value = "Values")
+
+#And then plot it
+
+tidy_data %>% ggplot(aes(x = Class, y = Values, fill = Class)) + 
+  facet_wrap(~Variable, scales = 'free') +
+  geom_boxplot() + 
+  labs(title = "V25, V23 and V22 Variables Distribution", 
+       x = "Transaction Type (0 = Non-Fraudulent, 1 = Fraudulent)",
+       y = "value")
+
+```
+
+As we can see, our approach seems to hold up, as the data on the last 3 variables on our vector have a very similar Interquartile Range, therefore, providing low predictive power. Lastly on this section, we will perform some aditional data wrangling prior starting our modeling phase, more specifically, we will create a training set as well as a test set. We can do this with the following code:
+
+```{r train and test set creation}
+
+y <- cc_dataset$Class
+
+#We will use 70% of the data for training and 30% for testing
+
+train_index <-  createDataPartition(y, times = 1, p = 0.7, list = FALSE)
+
+train_set <- cc_dataset %>% slice(train_index)
+test_set <- cc_dataset %>% slice(-train_index)
+
+```
 
 # Modeling
 
+## General Approach
+
+As we noticed on the Data Exploration phase, we are dealing with a very unbalanced data distribution, so evaluating our model just based on accuracy is not viable because if we predict all transactions as non-fraudulent (which would cost billions in losses to the banking industry), we would get an accuracy of $\sim 99.83\%$, a $Sensitivity = 0$ as we would predict all transactions as negatives (therefore, we would never get a true positive), and a $Specificity = \sim99.83$ as 99.83% of our data would get a true negative prediction. We can corroborate this by checking what proportion of the data is clasified as non-fraudulent transactions:
+
+```{r non fraudulent prop}
+
+base_accuracy <- class_dist$Count[1] / nrow(cc_dataset)
+base_accuracy
+
+base_sensitivity <- 0
+base_sensitivity
+
+base_specificity <- sum(cc_dataset$Class == 0) / nrow(cc_dataset)
+base_specificity
+
+```
+
+Taking this into account, we can also evaluate our model using the Sensitivity value (or True Positive Rate), as our final goal is to predict as much true fraudulent transactions as we can. We can set our baseline results as the ones we would get by predicting all transactions as non-fraudulent. 
+
+We will focus on getting a $Sensitivity >= 0.95$ while maintaining also a $Specificity >= 0.95$ so we also avoid alerting about too many false positives. Our baseline would be as follows:
+
+```{r baseline results}
+
+results <- data.frame(Model = "All Non-Fraudulent", 
+                      Accuracy = base_accuracy, 
+                      Sensitivity = base_sensitivity, 
+                      Specificity = base_specificity)
+results %>% knitr::kable()
+
+```
+
+We will build initially 3 models based on all the variables, then we will choose the best among those and tune-up the variables we will be using as predictors as we clearly saw that some of them have little to no predictive power.
 
 \pagebreak
 
-# Testing
+We will use these 3 models to decide which one we will use for the final model:
+
+1. Generalized Linear Model
+2. Decision Tree Model
+3. kNN Model
+
+## Generalized Linear Model - All Variables
+
+As explained on the General Approach section, we will now train a $GLM$ model using all the available variables to get a sense of the model performance we would get if we decide to use a Generalized Linear Model as a final model. Note that we will get this warning message: `fitted probabilities numerically 0 or 1 occurred`, this is due to the amount of predictors we are using, and as we are not going to consider in this case the Coefficients we get from our fitted model, we can disregard it.
+
+```{r glm model allvar}
+
+fit_glm_allvar <- glm(Class ~ ., data = train_set, family = "binomial")
+
+predict_glm_allvar <- predict(fit_glm_allvar, test_set, type = "response")
+
+yhat_glm_allvar <- if_else(predict_glm_allvar > 0.5, 1, 0) %>% factor()
+
+cm_glm_allvar <- confusionMatrix(data = yhat_glm_allvar, reference = test_set$Class, 
+                                 positive = "1")
+
+glm_allvar_acc <- cm_glm_allvar$overall["Accuracy"]
+glm_allvar_acc
+
+glm_allvar_st <- cm_glm_allvar$byClass["Sensitivity"]
+glm_allvar_st
+
+glm_allvar_sp <- cm_glm_allvar$byClass["Specificity"]
+glm_allvar_sp
+
+```
+
+Fuck this shit, will continue tomorrow.
+
+\pagebreak
+
+# Results
 
 \pagebreak
 

@@ -89,7 +89,7 @@ class(cc_dataset$Class)
 cc_dataset %>%
   count(Class) %>%
   ggplot(aes(x = Class, y = n/100,  fill = Class)) + 
-  geom_col() + 
+  geom_col(col = "Black") + 
   scale_y_log10() + 
   labs(title = "Fraudulent Transactions Distribution", 
        x = "Class (0 = Non-Fraudulent, 1 = Fraudulent)",
@@ -161,3 +161,77 @@ tidy_data %>% ggplot(aes(x = Class, y = Values, fill = Class)) +
   labs(title = "V3, V14 and V17 Variables Distribution", 
        x = "Class (0 = Non-Fraudulent, 1 = Fraudulent)",
        y = "value")
+
+#As we saw, up to now, our average differences approach is still valid
+
+#Now we will plot the last 3 variables we got on our diff vector
+
+#We will again tidy up the data first
+
+tidy_data <- cc_dataset[c("V25", "V23", "V22", "Class")] %>%
+  gather(-Class, key = "Variable", value = "Values")
+
+#And then plot it
+
+tidy_data %>% ggplot(aes(x = Class, y = Values, fill = Class)) + 
+  facet_wrap(~Variable, scales = 'free') +
+  geom_boxplot() + 
+  labs(title = "V25, V23 and V22 Variables Distribution", 
+       x = "Class (0 = Non-Fraudulent, 1 = Fraudulent)",
+       y = "value")
+
+#Now as our approach appears to hold up as well with the last 3 variables as they show a very similar distirbution
+#on the Interquartile Range, we will now do one last data wrangling task prior starting the modeling phase. We will
+#create a training set as well as a test set.
+
+y <- cc_dataset$Class
+
+#We will use 70% of the data for training and 30% for testing
+
+train_index <-  createDataPartition(y, times = 1, p = 0.7, list = FALSE)
+
+train_set <- cc_dataset %>% slice(train_index)
+test_set <- cc_dataset %>% slice(-train_index)
+
+
+#######################
+# Section 3: Modeling #
+#######################
+
+#Now we will calculate our base line accuracy, sensitivity and specificity
+
+base_accuracy <- class_dist$Count[1] / nrow(cc_dataset)
+base_accuracy
+
+base_sensitivity <- 0
+base_sensitivity
+
+base_specificity <- sum(cc_dataset$Class == 0) / nrow(cc_dataset)
+base_specificity
+
+#Also, we will create a data frame to store our results. We will also measure sensitivity and specificity
+
+results <- data.frame(Model = "All Non-Fraudulent", 
+                      Accuracy = base_accuracy, 
+                      Sensitivity = base_sensitivity, 
+                      Specificity = base_specificity)
+results %>% knitr::kable()
+
+#We will start by training a GLM model with all the variables
+
+fit_glm_allvar <- glm(Class ~ ., data = train_set, family = "binomial")
+
+predict_glm_allvar <- predict(fit_glm_allvar, test_set, type = "response")
+
+yhat_glm_allvar <- if_else(predict_glm_allvar > 0.5, 1, 0) %>% factor()
+
+cm_glm_allvar <- confusionMatrix(data = yhat_glm_allvar, reference = test_set$Class, positive = "1")
+
+glm_allvar_acc <- cm_glm_allvar$overall["Accuracy"]
+glm_allvar_acc
+
+glm_allvar_st <- cm_glm_allvar$byClass["Sensitivity"]
+glm_allvar_st
+
+glm_allvar_sp <- cm_glm_allvar$byClass["Specificity"]
+glm_allvar_sp
