@@ -198,23 +198,30 @@ test_set <- cc_dataset %>% slice(-train_index)
 # Section 3: Modeling #
 #######################
 
-#Now we will calculate our base line accuracy, sensitivity and specificity
+#Now we will get our baseline data
 
-base_accuracy <- class_dist$Count[1] / nrow(cc_dataset)
-base_accuracy
+all_nonfraud <- rep(0, nrow(test_set)) %>% factor(levels = c("0", "1"))
 
-base_sensitivity <- 0
-base_sensitivity
+cm_all_nonfraud <- confusionMatrix(data = all_nonfraud, 
+                                   reference = test_set$Class,
+                                   positive = "1")
 
-base_specificity <- sum(cc_dataset$Class == 0) / nrow(cc_dataset)
-base_specificity
+base_accuracy <- cm_all_nonfraud$overal["Accuracy"]
+base_b_accuracy <- cm_all_nonfraud$byClass["Balanced Accuracy"]
+base_sensitivity <- cm_all_nonfraud$byClass["Sensitivity"]
+base_specificity <- cm_all_nonfraud$byClass["Specificity"]
 
 #Also, we will create a data frame to store our results. We will also measure sensitivity and specificity
 
+metrics <- c("Model", "Accuracy", "Balanced Accuracy", "Sensitivity", "Specificity")
+
 results <- data.frame(Model = "All Non-Fraudulent", 
-                      Accuracy = base_accuracy, 
-                      Sensitivity = base_sensitivity, 
-                      Specificity = base_specificity)
+                      Accuracy = unname(base_accuracy), 
+                      "Balanced Accuracy" = unname(base_b_accuracy),
+                      Sensitivity = unname(base_sensitivity), 
+                      Specificity = unname(base_specificity),
+                      stringsAsFactors = FALSE)
+colnames(results) <- metrics
 results %>% knitr::kable()
 
 #We will start by training a GLM model with all the variables
@@ -225,13 +232,23 @@ predict_glm_allvar <- predict(fit_glm_allvar, test_set, type = "response")
 
 yhat_glm_allvar <- if_else(predict_glm_allvar > 0.5, 1, 0) %>% factor()
 
-cm_glm_allvar <- confusionMatrix(data = yhat_glm_allvar, reference = test_set$Class, positive = "1")
+cm_glm_allvar <- confusionMatrix(data = yhat_glm_allvar, reference = test_set$Class, 
+                                 positive = "1")
+
+#And then storing the results
 
 glm_allvar_acc <- cm_glm_allvar$overall["Accuracy"]
-glm_allvar_acc
-
+glm_allvar_b_acc <- cm_glm_allvar$byClass["Balanced Accuracy"]
 glm_allvar_st <- cm_glm_allvar$byClass["Sensitivity"]
-glm_allvar_st
-
 glm_allvar_sp <- cm_glm_allvar$byClass["Specificity"]
-glm_allvar_sp
+
+glm_allvar_results <-  data.frame(Model = "GLM - All Variables",
+                                  Accuracy = unname(glm_allvar_acc),
+                                  "Balanced Accuracy" = unname(glm_allvar_b_acc),
+                                  Sensitivity = unname(glm_allvar_st),
+                                  Specificity = unname(glm_allvar_sp), 
+                                  stringsAsFactors = FALSE)
+colnames(glm_allvar_results) <- metrics
+
+results <- bind_rows(results, glm_allvar_results)
+results %>% knitr::kable()

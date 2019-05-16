@@ -287,38 +287,43 @@ test_set <- cc_dataset %>% slice(-train_index)
 
 ## General Approach
 
-As we noticed on the Data Exploration phase, we are dealing with a very unbalanced data distribution, so evaluating our model just based on accuracy is not viable because if we predict all transactions as non-fraudulent (which would cost billions in losses to the banking industry), we would get an accuracy of $\sim 99.83\%$, a $Sensitivity = 0$ as we would predict all transactions as negatives (therefore, we would never get a true positive), and a $Specificity = \sim99.83$ as 99.83% of our data would get a true negative prediction. We can corroborate this by checking what proportion of the data is clasified as non-fraudulent transactions:
+As we noticed on the Data Exploration phase, we are dealing with a very unbalanced data distribution, so evaluating our model just based on accuracy is not viable because if we predict all transactions as non-fraudulent (which would cost billions in losses to the banking industry), we would get an accuracy of $\sim 99.83\%$. Taking this into account, we can also evaluate our model using the Sensitivity value (or True Positive Rate), as our final goal is to predict as much true fraudulent transactions as we can.
 
-```{r non fraudulent prop}
+We will focus on achieving a $Sensitivity >= 0.95$ while maintaining also a $Specificity >= 0.95$ so we also avoid alerting about too many false positives. Despite the low viability of predicting all transactions as non-fraudulent, we can use this very simplistic approach as our baseline to evaluate the ongoing models. 
 
-base_accuracy <- class_dist$Count[1] / nrow(cc_dataset)
-base_accuracy
+To calculate all the metrics for this approach, we will create a Confusion Matrix where we predict all transactions as non-fraudulent. This gives us a potential walkaround to get more informatives results, as the Confusion Matrix also calculates a balanced accuracy that takes into account the data prevalence, so we can also use that value on our metrics. Taking this into account, we will also be focucing on ahcieving a $Balanced Accuracy >= 0.95$. We will store our results into a new chart.
 
-base_sensitivity <- 0
-base_sensitivity
+```{r baseline approach}
 
-base_specificity <- sum(cc_dataset$Class == 0) / nrow(cc_dataset)
-base_specificity
+all_nonfraud <- rep(0, nrow(test_set)) %>% factor(levels = c("0", "1"))
 
-```
+cm_all_nonfraud <- confusionMatrix(data = all_nonfraud, 
+                                   reference = test_set$Class,
+                                   positive = "1")
 
-Taking this into account, we can also evaluate our model using the Sensitivity value (or True Positive Rate), as our final goal is to predict as much true fraudulent transactions as we can. We can set our baseline results as the ones we would get by predicting all transactions as non-fraudulent. 
+base_accuracy <- cm_all_nonfraud$overal["Accuracy"]
+base_b_accuracy <- cm_all_nonfraud$byClass["Balanced Accuracy"]
+base_sensitivity <- cm_all_nonfraud$byClass["Sensitivity"]
+base_specificity <- cm_all_nonfraud$byClass["Specificity"]
 
-We will focus on getting a $Sensitivity >= 0.95$ while maintaining also a $Specificity >= 0.95$ so we also avoid alerting about too many false positives. Our baseline would be as follows:
-
-```{r baseline results}
+metrics <- c("Model", "Accuracy", "Balanced Accuracy", "Sensitivity", "Specificity")
 
 results <- data.frame(Model = "All Non-Fraudulent", 
-                      Accuracy = base_accuracy, 
-                      Sensitivity = base_sensitivity, 
-                      Specificity = base_specificity)
+                      Accuracy = unname(base_accuracy), 
+                      "Balanced Accuracy" = unname(base_b_accuracy),
+                      Sensitivity = unname(base_sensitivity), 
+                      Specificity = unname(base_specificity),
+                      stringsAsFactors = FALSE)
+colnames(results) <- metrics
 results %>% knitr::kable()
 
 ```
 
-We will build initially 3 models based on all the variables, then we will choose the best among those and tune-up the variables we will be using as predictors as we clearly saw that some of them have little to no predictive power.
+As we can see, including the balanced accuracy in our metrics gives us a way more informative result when compared to just the accuracy alone. It takes into account the data prevalence, therefore, sorting out our highly unbalanced data. As expected, we got a quite bad value on that metric, still, it will serve as a baseline measure.
 
 \pagebreak
+
+We will build initially 3 models based on all the variables of our data, then we will choose the best performing model among those and tune-up the variables we will be using as predictors as we clearly saw that some of them have little to no predictive power.
 
 We will use these 3 models to decide which one we will use for the final model:
 
@@ -328,7 +333,9 @@ We will use these 3 models to decide which one we will use for the final model:
 
 ## Generalized Linear Model - All Variables
 
-As explained on the General Approach section, we will now train a $GLM$ model using all the available variables to get a sense of the model performance we would get if we decide to use a Generalized Linear Model as a final model. Note that we will get this warning message: `fitted probabilities numerically 0 or 1 occurred`, this is due to the amount of predictors we are using, and as we are not going to consider in this case the Coefficients we get from our fitted model, we can disregard it.
+As explained on the General Approach section, we will now train a $GLM$ model using all the available variables to get a sense of the model performance we would get if we decide to use a Generalized Linear Model as a final model, then, we will store our results. 
+
+Note that we will get this warning message: `fitted probabilities numerically 0 or 1 occurred`, this is due to the amount of predictors we are using, and as we are not going to consider in this case the Coefficients we get from our fitted model, we can disregard the warning.
 
 ```{r glm model allvar}
 
@@ -342,17 +349,23 @@ cm_glm_allvar <- confusionMatrix(data = yhat_glm_allvar, reference = test_set$Cl
                                  positive = "1")
 
 glm_allvar_acc <- cm_glm_allvar$overall["Accuracy"]
-glm_allvar_acc
-
+glm_allvar_b_acc <- cm_glm_allvar$byClass["Balanced Accuracy"]
 glm_allvar_st <- cm_glm_allvar$byClass["Sensitivity"]
-glm_allvar_st
-
 glm_allvar_sp <- cm_glm_allvar$byClass["Specificity"]
-glm_allvar_sp
+
+glm_allvar_results <-  data.frame(Model = "GLM - All Variables",
+                                  Accuracy = unname(glm_allvar_acc),
+                                  "Balanced Accuracy" = unname(glm_allvar_b_acc),
+                                  Sensitivity = unname(glm_allvar_st),
+                                  Specificity = unname(glm_allvar_sp), 
+                                  stringsAsFactors = FALSE)
+colnames(glm_allvar_results) <- metrics
+
+results <- bind_rows(results, glm_allvar_results)
+results %>% knitr::kable()
 
 ```
 
-Fuck this shit, will continue tomorrow.
 
 \pagebreak
 
