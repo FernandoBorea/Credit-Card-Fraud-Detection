@@ -289,9 +289,9 @@ test_set <- cc_dataset %>% slice(-train_index)
 
 As we noticed on the Data Exploration phase, we are dealing with a very unbalanced data distribution, so evaluating our model just based on accuracy is not viable because if we predict all transactions as non-fraudulent (which would cost billions in losses to the banking industry), we would get an accuracy of $\sim 99.83\%$. Taking this into account, we can also evaluate our model using the Sensitivity value (or True Positive Rate), as our final goal is to predict as much true fraudulent transactions as we can.
 
-We will focus on achieving a $Sensitivity >= 0.95$ while maintaining also a $Specificity >= 0.95$ so we also avoid alerting about too many false positives. Despite the low viability of predicting all transactions as non-fraudulent, we can use this very simplistic approach as our baseline to evaluate the ongoing models. 
+We will focus on achieving a $Sensitivity >= 0.80$ while maintaining also a $Specificity >= 0.95$ so we also avoid alerting about too many false positives. Despite the low viability of predicting all transactions as non-fraudulent, we can use this very simplistic approach as our baseline to evaluate the ongoing models. 
 
-To calculate all the metrics for this approach, we will create a Confusion Matrix where we predict all transactions as non-fraudulent. This gives us a potential walkaround to get more informatives results, as the Confusion Matrix also calculates a balanced accuracy that takes into account the data prevalence, so we can also use that value on our metrics. Taking this into account, we will also be focucing on ahcieving a $Balanced Accuracy >= 0.95$. We will store our results into a new chart.
+To calculate all the metrics for this approach, we will create a Confusion Matrix where we predict all transactions as non-fraudulent. This gives us a potential walkaround to get more informatives results, as the Confusion Matrix also calculates a balanced accuracy that takes into account the data prevalence, so we can also use that value on our metrics. Taking this into account, we will also be focucing on ahcieving a $Balanced Accuracy >= 0.90$. We will store our results into a new chart.
 
 ```{r baseline approach}
 
@@ -323,19 +323,17 @@ As we can see, including the balanced accuracy in our metrics gives us a way mor
 
 \pagebreak
 
-We will build initially 3 models based on all the variables of our data, then we will choose the best performing model among those and tune-up the variables we will be using as predictors as we clearly saw that some of them have little to no predictive power.
-
-We will use these 3 models to decide which one we will use for the final model:
+We will build initially 3 models based on all the variables of our data, then we will choose the best performing model among those and tune-up the variables we will be using as predictors as we clearly saw that some of them have little to no predictive power. The models we will use are based on a relatively simplistic mathematical approach, and because of our data set size, this will significally improve our run time. The models we will be training on are the following:
 
 1. Generalized Linear Model
-2. Decision Tree Model
-3. kNN Model
+2. Linear Discriminant Analysis Model
+3. Quadratic Discriminant Analysis Model
 
 ## Generalized Linear Model - All Variables
 
 As explained on the General Approach section, we will now train a $GLM$ model using all the available variables to get a sense of the model performance we would get if we decide to use a Generalized Linear Model as a final model, then, we will store our results. 
 
-Note that we will get this warning message: `fitted probabilities numerically 0 or 1 occurred`, this is due to the amount of predictors we are using, and as we are not going to consider in this case the Coefficients we get from our fitted model, we can disregard the warning.
+Note that we will get this warning message: `fitted probabilities numerically 0 or 1 occurred`, this is due to the amount of predictors we are using, and as we are not going to consider in this case the Coefficients we get from our fitted model, we can disregard the warning. Note that running this code might take several minutes depending on your computer characteristics.
 
 ```{r glm model allvar}
 
@@ -369,8 +367,198 @@ results %>% knitr::kable()
 
 \pagebreak
 
+## Linear Discriminant Analysis Model - All Variables
+
+As we can see, our previous model gave us a significant improvement from our baseline results. Now, we will test an $LDA$ model as it is a relatively simplistic approach that will help us to sort out the amount of predictors we are using. Then we will store our results. Note that running this code can take several minutes depending on your computer characteristics.
+
+```{r lda all vars}
+
+fit_lda_allvar <- train(Class ~ ., method = "lda", data = train_set)
+
+predict_lda_allvar <- predict(fit_lda_allvar, test_set)
+
+cm_lda_allvar <- confusionMatrix(data = predict_lda_allvar, reference = test_set$Class,
+                                positive = "1")
+
+lda_allvar_acc <- cm_lda_allvar$overall["Accuracy"]
+lda_allvar_b_acc <- cm_lda_allvar$byClass["Balanced Accuracy"]
+lda_allvar_st <- cm_lda_allvar$byClass["Sensitivity"]
+lda_allvar_sp <- cm_lda_allvar$byClass["Specificity"]
+
+lda_allvar_results <-  data.frame(Model = "LDA - All Variables",
+                                  Accuracy = unname(lda_allvar_acc),
+                                  "Balanced Accuracy" = unname(lda_allvar_b_acc),
+                                  Sensitivity = unname(lda_allvar_st),
+                                  Specificity = unname(lda_allvar_sp), 
+                                  stringsAsFactors = FALSE)
+colnames(lda_allvar_results) <- metrics
+
+results <- bind_rows(results, lda_allvar_results)
+results %>% knitr::kable()
+
+```
+
+As we can see, all our metrics except Specificity (which was sligthly affected) got a significant improvement. This is because this model asumes the correlation structure is the same accross all predictors and it is not significantly affected by a large amount of predictors, and as we have some variables that indeed follow a fairly distinct distribution between transaction types, it helped out the model and leaves room for improvement if we pick this model as our final model, as we can drop some variables that have little to no predictive power, therefore reducing the "noise" within the model.
+
+\pagebreak
+
+## Quadratic Discriminant Analysis Model - All Variables
+
+Taking into account that we had a significant improvement using an $LDA$ model, we will now try with a similar approach, more specifically, we will use an $QDA$ model, which is a version of Naive Bayes and assumes we have a multivariate normal distribution, which is true within some variables. Because of that fact, by using this model we should see an improvement over the results of the $LDA$ approach, as it is more restrictive and it does not allow flexibility within the distribution of the data. Again, after training and testing our model, we will store the results into our chart.
+
+```{r qda all vars}
+
+fit_qda_allvar <- train(Class ~ ., method = "qda", data = train_set)
+
+predict_qda_allvar <- predict(fit_qda_allvar, test_set)
+
+cm_qda_allvar <- confusionMatrix(data = predict_qda_allvar, reference = test_set$Class,
+                                 positive = "1")
+
+qda_allvar_acc <- cm_qda_allvar$overall["Accuracy"]
+qda_allvar_b_acc <- cm_qda_allvar$byClass["Balanced Accuracy"]
+qda_allvar_st <- cm_qda_allvar$byClass["Sensitivity"]
+qda_allvar_sp <- cm_qda_allvar$byClass["Specificity"]
+
+qda_allvar_results <-  data.frame(Model = "QDA - All Variables",
+                                  Accuracy = unname(qda_allvar_acc),
+                                  "Balanced Accuracy" = unname(qda_allvar_b_acc),
+                                  Sensitivity = unname(qda_allvar_st),
+                                  Specificity = unname(qda_allvar_sp), 
+                                  stringsAsFactors = FALSE)
+colnames(qda_allvar_results) <- metrics
+
+results <- bind_rows(results, qda_allvar_results)
+results %>% knitr::kable()
+
+```
+
+We in fact got another pretty good improvement in our results. This time, the Specificity was quite affected, but we are still maintaining it above 0.95. This is probably because we are using all the available variables as predictors, throwing noise into our model. 
+
+It is very likely that we see another nice improvement in our results because of the flexibility the $QDA$ gives us when compared to the $LDA$ approach, and still, we do have some room for improvement if we go with this model.
+
+\pagebreak
+
+## Choosing a Final Model - Naive Predictor Picking
+
+When we analyse the results we got from the three models we trained previously, we can see that the $QDA$ approach is the best one to work upon, as it allows by nature more flexibility for the data and it still can be improved by simply remove the less relevant variables for the model. 
+
+We will start by using the top 5 variables we got by our naive average differences by transaction type approach we built duting the Data Exploration section as predictors and see if we get some improvements on the results. Then, again, we will store them into our chart. Note that we will refer to this approach as NAD on the code.
+
+```{r naive nad approach}
+
+diff[1:5]
+
+fit_qda_nad5 <- train(Class ~ V3 + V14 + V17 + V12 + V10,
+                       method = "qda", data = train_set)
+
+predict_qda_nad5 <- predict(fit_qda_nad5, test_set)
+
+cm_qda_nad5 <- confusionMatrix(data = predict_qda_nad5, reference = test_set$Class,
+                                 positive = "1")
+
+qda_nad5_acc <- cm_qda_nad5$overall["Accuracy"]
+qda_nad5_b_acc <- cm_qda_nad5$byClass["Balanced Accuracy"]
+qda_nad5_st <- cm_qda_nad5$byClass["Sensitivity"]
+qda_nad5_sp <- cm_qda_nad5$byClass["Specificity"]
+
+qda_nad5_results <-  data.frame(Model = "QDA - NAD Top 5",
+                                  Accuracy = unname(qda_nad5_acc),
+                                  "Balanced Accuracy" = unname(qda_nad5_b_acc),
+                                  Sensitivity = unname(qda_nad5_st),
+                                  Specificity = unname(qda_nad5_sp), 
+                                  stringsAsFactors = FALSE)
+colnames(qda_nad5_results) <- metrics
+
+results <- bind_rows(results, qda_nad5_results)
+results %>% knitr::kable()
+
+```
+
+As we can see, we got a slight improvement on our overall accuracy, probably by the increase on the $Specificity$, but we did not achieved any significant progress relative to our previous model. We will try now using the `filterVarImp` function to select another set of predictors. We will apply that function over the $QDA$ model we applied to all variables, then, we will train now on the top 10 variables get from the function. 
+
+\pagebreak
+
+## Choosing a Final Model - Variable Importance Predictor Picking 
+
+We will start by selecting the top 10 variables we get when applying the `filterVarImp` function, and then we will train again our model using these variables as predictors. Depending on the result we get, we can also try to use only the top 5 variables from the function output. We will start by picking our variables from the $QDA - All\ Variables$ model, and then we will train the new model to store the new results into our chart.
+
+```{r new predictors varimp model}
+
+top_10_pred <- filterVarImp(test_set[-31], predict_qda_allvar)
+
+top_10_pred <- top_10_pred[order(top_10_pred$X0, decreasing = TRUE),]
+
+rownames(top_10_pred[1:10,])
+
+fit_qda_fvi10 <- train(Class ~ V1 + V3 + V2 + V17 + V7
+                           + V4 + V16 + V8 + V18 + V27,
+                      method = "qda", data = train_set)
+
+predict_qda_fvi10 <- predict(fit_qda_fvi10, test_set)
+
+cm_qda_fvi10 <- confusionMatrix(data = predict_qda_fvi10, reference = test_set$Class,
+                               positive = "1")
+
+qda_fvi10_acc <- cm_qda_fvi10$overall["Accuracy"]
+qda_fvi10_b_acc <- cm_qda_fvi10$byClass["Balanced Accuracy"]
+qda_fvi10_st <- cm_qda_fvi10$byClass["Sensitivity"]
+qda_fvi10_sp <- cm_qda_fvi10$byClass["Specificity"]
+
+qda_fvi10_results <-  data.frame(Model = "QDA - filterVarImp Top 10",
+                                Accuracy = unname(qda_fvi10_acc),
+                                "Balanced Accuracy" = unname(qda_fvi10_b_acc),
+                                Sensitivity = unname(qda_fvi10_st),
+                                Specificity = unname(qda_fvi10_sp), 
+                                stringsAsFactors = FALSE)
+colnames(qda_fvi10_results) <- metrics
+
+results <- bind_rows(results, qda_fvi10_results)
+results %>% knitr::kable()
+
+```
+
+We got about the same result as our previous model, therefore, we will discard this predictor picking approach for our model and we will call the $QDA - All\ Variables$ our winner, as we got the best results from it. 
+
+\pagebreak
+
 # Results
+
+After developing 6 models in total and doing some testing using approaches like $kNN$ or Decision Trees (because the run time was significantly affected on those models and we got about the same results as the $LDA - All\ Variables$ model, we will not include them into the report nor the Credit Card Fraud Detection Script file), we have a winner: the $QDA - All\ Variables$ model. We will quickly view our final results sorted by Sensitivity:
+
+```{r final results}
+
+final_results <- results[order(results$Sensitivity, decreasing = TRUE),]
+final_results %>% knitr::kable() 
+
+```
+
+We can also see the detailed metrics of our final model viewing the Confusion Matrix by just calling the `cm_qda_allvar` object we created earlier:
+
+```{r show confusion matrix}
+
+cm_qda_allvar
+
+```
 
 \pagebreak
 
 # Conclusions
+
+Throughout this project, we learned some very useful insigths when we deal with a very unbalanced data. This project had some majors challenges we had to face and sort, for example: a very large amount of variables, variables without meaningful names, very high prevalece of one of the classes we need to predict. a somewhat large amount of observations, among others. 
+
+Because of this, we chosed to go with a quite simplistic approach by using models that can handle a large amount of predictors and observations without compromising the runtime of our code, which resulted on a reduction of around $85\%$ of the fraudulent transactions.
+
+We can also visualize the results we would get if we apply our model to the entire dataset (we will not consider this reuslts in our chart as we trained our data on $70\%$ of the complete dataset) with the following code:
+
+```{r all dataset prediction}
+
+qda_all_dataset <- predict(fit_qda_allvar, cc_dataset)
+
+cm_qda_all_dataset <- confusionMatrix(data = qda_all_dataset, reference = cc_dataset$Class,
+                                      positive = "1")
+cm_qda_all_dataset
+
+```
+
+As a general conclusion for this project, the banking industry definetely has a big room for improvement on their fraudulent transactions detection systems. By improving them, they would significantly reduce the anual losses due to fraudulent credit card transactions, which could climb to millions, and by doing so, the cardholders can feel more confidence by shopping with their cards without worrying about getting their cards cloned, increasing the monetary mass on the economy.
