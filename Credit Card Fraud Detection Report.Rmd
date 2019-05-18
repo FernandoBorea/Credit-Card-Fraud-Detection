@@ -291,7 +291,7 @@ As we noticed on the Data Exploration phase, we are dealing with a very unbalanc
 
 We will focus on achieving a $Sensitivity >= 0.80$ while maintaining also a $Specificity >= 0.95$ so we also avoid alerting about too many false positives. Despite the low viability of predicting all transactions as non-fraudulent, we can use this very simplistic approach as our baseline to evaluate the ongoing models. 
 
-To calculate all the metrics for this approach, we will create a Confusion Matrix where we predict all transactions as non-fraudulent. This gives us a potential walkaround to get more informatives results, as the Confusion Matrix also calculates a balanced accuracy that takes into account the data prevalence, so we can also use that value on our metrics. Taking this into account, we will also be focucing on ahcieving a $Balanced Accuracy >= 0.90$. We will store our results into a new chart.
+To calculate all the metrics for this approach, we will create a Confusion Matrix where we predict all transactions as non-fraudulent. This gives us a potential walkaround to get more informative results, as the Confusion Matrix also calculates a balanced accuracy that takes into account the data prevalence, so we can also use that value on our metrics. Taking this into account, we will also be focusing on ahcieving a $Balanced\ Accuracy >= 0.90$. We will store our results into a new chart.
 
 ```{r baseline approach}
 
@@ -333,7 +333,7 @@ We will build initially 3 models based on all the variables of our data, then we
 
 As explained on the General Approach section, we will now train a $GLM$ model using all the available variables to get a sense of the model performance we would get if we decide to use a Generalized Linear Model as a final model, then, we will store our results. 
 
-Note that we will get this warning message: `fitted probabilities numerically 0 or 1 occurred`, this is due to the amount of predictors we are using, and as we are not going to consider in this case the Coefficients we get from our fitted model, we can disregard the warning. Note that running this code might take several minutes depending on your computer characteristics.
+Note that we will get this warning message: `fitted probabilities numerically 0 or 1 occurred`. This is due to the amount of predictors we are using, and as we are not going to consider in this case the Coefficients we get from our fitted model, we can disregard the warning. Note that running this code might take several minutes depending on your computer characteristics.
 
 ```{r glm model allvar}
 
@@ -404,7 +404,7 @@ As we can see, all our metrics except Specificity (which was sligthly affected) 
 
 ## Quadratic Discriminant Analysis Model - All Variables
 
-Taking into account that we had a significant improvement using an $LDA$ model, we will now try with a similar approach, more specifically, we will use an $QDA$ model, which is a version of Naive Bayes and assumes we have a multivariate normal distribution, which is true within some variables. Because of that fact, by using this model we should see an improvement over the results of the $LDA$ approach, as it is more restrictive and it does not allow flexibility within the distribution of the data. Again, after training and testing our model, we will store the results into our chart.
+Taking into account that we had a significant improvement using an $LDA$ model, we will now try with a similar approach, more specifically, we will use an $QDA$ model, which is a version of Naive Bayes and assumes we have a multivariate normal distribution, which is true within some variables. Due to that fact, by using this model we should see an improvement over the results of the $LDA$ approach, as it is more restrictive and it does not allow flexibility within the distribution of the data. Again, after training and testing our model, we will store the results into our chart.
 
 ```{r qda all vars}
 
@@ -441,9 +441,9 @@ It is very likely that we see another nice improvement in our results because of
 
 ## Choosing a Final Model - Naive Predictor Picking
 
-When we analyse the results we got from the three models we trained previously, we can see that the $QDA$ approach is the best one to work upon, as it allows by nature more flexibility for the data and it still can be improved by simply remove the less relevant variables for the model. 
+When we analyse the results we got from the three models we trained previously, we can see that the $QDA$ approach is the best one to work upon, as it allows by nature more flexibility for the data and it still can be improved by simply removing the less relevant variables for the model. 
 
-We will start by using the top 5 variables we got by our naive average differences by transaction type approach we built duting the Data Exploration section as predictors and see if we get some improvements on the results. Then, again, we will store them into our chart. Note that we will refer to this approach as NAD on the code.
+We will start by using the top 5 variables we got by our naive average differences by transaction type approach we built during the Data Exploration section as predictors and see if we get some improvements on the results. Then, again, we will store them into our chart. Note that we will refer to this approach as NAD on the code.
 
 ```{r naive nad approach}
 
@@ -475,7 +475,7 @@ results %>% knitr::kable()
 
 ```
 
-As we can see, we got a slight improvement on our overall accuracy, probably by the increase on the $Specificity$, but we did not achieved any significant progress relative to our previous model. We will try now using the `filterVarImp` function to select another set of predictors. We will apply that function over the $QDA$ model we applied to all variables, then, we will train now on the top 10 variables get from the function. 
+As we can see, we got a slight improvement on our overall accuracy, probably by the increase on the $Specificity$, but we did not achieve any significant progress relative to our previous model. We will now try using the `filterVarImp` function to select another set of predictors. We will apply that function over the $QDA$ model we applied to all variables, then, we will train now on the top 10 variables we get from the function.
 
 \pagebreak
 
@@ -547,9 +547,9 @@ cm_qda_allvar
 
 Throughout this project, we learned some very useful insigths when we deal with a very unbalanced data. This project had some majors challenges we had to face and sort, for example: a very large amount of variables, variables without meaningful names, very high prevalece of one of the classes we need to predict. a somewhat large amount of observations, among others. 
 
-Because of this, we chosed to go with a quite simplistic approach by using models that can handle a large amount of predictors and observations without compromising the runtime of our code, which resulted on a reduction of around $85\%$ of the fraudulent transactions.
+Because of this, we chose to go with a quite simplistic approach by using models that can handle a large amount of predictors and observations without compromising the runtime of our code, which resulted on a reduction of around $89\%$ of the fraudulent transactions.
 
-We can also visualize the results we would get if we apply our model to the entire dataset (we will not consider this reuslts in our chart as we trained our data on $70\%$ of the complete dataset) with the following code:
+We can also visualize the results we would get if we apply our model to the entire dataset (we will not consider these reuslts in our chart as we trained our data on $70\%$ of the complete dataset) with the following code: 
 
 ```{r all dataset prediction}
 
@@ -561,4 +561,4 @@ cm_qda_all_dataset
 
 ```
 
-As a general conclusion for this project, the banking industry definetely has a big room for improvement on their fraudulent transactions detection systems. By improving them, they would significantly reduce the anual losses due to fraudulent credit card transactions, which could climb to millions, and by doing so, the cardholders can feel more confidence by shopping with their cards without worrying about getting their cards cloned, increasing the monetary mass on the economy.
+As a general conclusion for this project, the banking Industry has big room for improvement on their fraudulent transaction detective system. By improving them, they would significantly reduce the anual losses due to fraudulent credit card transactions, which could amount to millions, and by doing so, the cardholders can feel more confidence by shopping with their cards without having to worry about getting their cards cloned, increasing the monetary mass on the economy.
