@@ -50,11 +50,11 @@ if(file.exists("creditcard.csv"))
 
 #Once this process is finished, we can do some preliminary data exploration, for example
 
-#We can check the structure of our data with str()
+#We can check the structure of the data with str()
 
 str(cc_dataset)
 
-#We also can create two small charts with some information about our data
+#We also can create two small charts with some information about the data
 
 #First, we will look for the amount of rows and columns
 
@@ -95,7 +95,7 @@ cc_dataset %>%
        x = "Class (0 = Non-Fraudulent, 1 = Fraudulent)",
        y = "Count in Hundreds")
 
-#Because of the huge difference we saw on the distribution, we will check how many entries we have on  each class:
+#Because of the huge difference we saw on the distribution, we will check how many entries we have on each class:
 
 class_dist <- cc_dataset %>%
                group_by(Class) %>%
@@ -109,7 +109,7 @@ vars_grouped_avgs <- cc_dataset %>%
                      summarize_all(list(mean))
 vars_grouped_avgs
 
-#We will drop the class column as it is a factor and we cannot perform operations with it
+#We will drop the class column as it is a factor and we cannot perform mathematical operations with it
 
 vars_diff <- vars_grouped_avgs[,-1]
 
@@ -123,10 +123,10 @@ diff
 
 vars_grouped_avgs[c("Time", "Amount")]
 
-#Because we might have a similar distribution (hyphothesys explained on the report at page 7) on Time and Amount when 
-#grouped by the transaction type, we will plot them to check if we are correct:
+#Because we might have a similar distribution (hypothesis explained on the report at page 7) on Time and Amount variables
+#when grouped by the transaction type, we will plot them to check if we are correct:
 
-#We will transform Amount variable to log10 values and tidy up the data 
+#We will transform the Amount variable to log10 values and tidy up the data 
 
 time_amount_tidy <- cc_dataset[c("Time", "Amount", "Class")] %>%
   mutate(Amount = if_else(Amount != 0,log10(Amount), Amount)) %>%
@@ -142,7 +142,7 @@ time_amount_tidy %>%
        x = "Class (0 = Non-Fraudulent, 1 = Fraudulent)",
        y = "value")
 
-#As we can see, our hyphothesis was correct, so we will drop the Time and Amount entries of our vector
+#As we can see, our hyphothesis was correct, so we will drop the Time and Amount variables entries of our vector
 
 diff <- diff[-which(names(diff) %in% c("Time", "Amount"))]
 
@@ -162,7 +162,7 @@ tidy_data %>% ggplot(aes(x = Class, y = Values, fill = Class)) +
        x = "Class (0 = Non-Fraudulent, 1 = Fraudulent)",
        y = "value")
 
-#As we saw, up to now, our average differences approach is still valid
+#As we saw, up to now, our difference of averages approach is still valid
 
 #Now we will plot the last 3 variables we got on our diff vector
 
@@ -198,7 +198,7 @@ test_set <- cc_dataset %>% slice(-train_index)
 # Section 3: Modeling #
 #######################
 
-#Please note that  on this section we will not include a deep explaination about the code we're using as 
+#Please note that on this section we will not include a deep explaination about the code we are using as 
 #it is included on the report.
 
 #Now we will get our baseline data
@@ -265,7 +265,7 @@ predict_lda_allvar <- predict(fit_lda_allvar, test_set)
 cm_lda_allvar <- confusionMatrix(data = predict_lda_allvar, reference = test_set$Class,
                                 positive = "1")
 
-#And then storing the results
+#And then we will store the results
 
 lda_allvar_acc <- cm_lda_allvar$overall["Accuracy"]
 lda_allvar_b_acc <- cm_lda_allvar$byClass["Balanced Accuracy"]
@@ -292,7 +292,7 @@ predict_qda_allvar <- predict(fit_qda_allvar, test_set)
 cm_qda_allvar <- confusionMatrix(data = predict_qda_allvar, reference = test_set$Class,
                                  positive = "1")
 
-#And then storing the results
+#And then we will store the results
 
 qda_allvar_acc <- cm_qda_allvar$overall["Accuracy"]
 qda_allvar_b_acc <- cm_qda_allvar$byClass["Balanced Accuracy"]
